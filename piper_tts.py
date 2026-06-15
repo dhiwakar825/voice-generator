@@ -1,7 +1,7 @@
 import subprocess
 import wave
 from pathlib import Path
-
+import os
 class PiperTTS:
     VOICES = {
         'Female (US)': {
@@ -48,7 +48,7 @@ class PiperTTS:
         output_path = self.output_dir / output_filename
         
         cmd = [
-            'piper',
+            os.path.expanduser('~/bin/piper'),
             '--model', str(self.model_path),
             '--config', str(self.config_path),
             '--output_file', str(output_path)
