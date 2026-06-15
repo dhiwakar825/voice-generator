@@ -7,12 +7,13 @@ import hashlib
 
 class PiperTTS:
     VOICES = {
-        'Female (US)': {'lang': 'en', 'tld': 'com'},
-        'Male (US)': {'lang': 'en', 'tld': 'co.in'},
-        'Female (UK)': {'lang': 'en', 'tld': 'co.uk'},
+        'English (US)': {'lang': 'en', 'tld': 'com'},
+        'English (UK)': {'lang': 'en', 'tld': 'co.uk'},
+        'English (AU)': {'lang': 'en', 'tld': 'com.au'},
+        'English (IN)': {'lang': 'en', 'tld': 'co.in'},
     }
     
-    def __init__(self, voice='Female (US)'):
+    def __init__(self, voice='English (US)'):
         self.output_dir = Path("output/audio")
         self.output_dir.mkdir(parents=True, exist_ok=True)
         self.set_voice(voice)
@@ -25,7 +26,7 @@ class PiperTTS:
     def synthesize(self, text, output_filename=None):
         if output_filename is None:
             hash_id = hashlib.md5(text.encode()).hexdigest()[:8]
-            voice_prefix = self.current_voice.split(' ')[0].lower()
+            voice_prefix = self.current_voice.split('(')[1].replace(')','').strip().lower()
             output_filename = f"speech_{voice_prefix}_{hash_id}.mp3"
         
         output_path = self.output_dir / output_filename
