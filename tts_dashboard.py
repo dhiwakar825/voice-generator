@@ -182,12 +182,12 @@ with st.sidebar:
         audio_dir = Path("output/audio")
         if audio_dir.exists():
             count = 0
-            for file in audio_dir.glob("*.mp3"):
-                file.unlink()
-                count += 1
-            for file in audio_dir.glob("*.wav"):
-                file.unlink()
-                count += 1
+            for file in list(audio_dir.glob("*.mp3")) + list(audio_dir.glob("*.wav")):
+                try:
+                    file.unlink()
+                    count += 1
+                except:
+                    pass
             st.success(f"✅ Deleted {count} files!")
             st.rerun()
     
@@ -195,10 +195,10 @@ with st.sidebar:
     
     audio_dir = Path("output/audio")
     if audio_dir.exists():
-        mp3_files = list(audio_dir.glob("*.mp3"))
-        wav_files = list(audio_dir.glob("*.wav"))
+        mp3_files = list(audio_dir.glob("*.mp3")) if audio_dir.exists() else []
+        wav_files = list(audio_dir.glob("*.wav")) if audio_dir.exists() else []
         file_count = len(mp3_files) + len(wav_files)
-        total_size = sum(f.stat().st_size for f in mp3_files) + sum(f.stat().st_size for f in wav_files)
+        total_size = sum(f.stat().st_size for f in mp3_files if f.exists()) + sum(f.stat().st_size for f in wav_files if f.exists())
         st.caption(f"📊 Files: {file_count}")
         st.caption(f"💾 Size: {total_size/1024:.1f} KB")
     
@@ -236,12 +236,15 @@ with col1:
     if st.button("🔊 Generate", type="primary", use_container_width=True):
         if text.strip():
             with st.spinner(f"🔄 Generating..."):
-                result = tts.synthesize(text)
-                st.session_state.last_audio = result['path']
-                st.session_state.last_duration = result['duration']
-                st.session_state.last_voice = result['voice']
-                st.success(f"✅ Done! | {result['duration']:.1f}s")
-                st.rerun()
+                try:
+                    result = tts.synthesize(text)
+                    st.session_state.last_audio = result['path']
+                    st.session_state.last_duration = result['duration']
+                    st.session_state.last_voice = result['voice']
+                    st.success(f"✅ Done! | {result['duration']:.1f}s")
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"❌ Error: {str(e)}")
         else:
             st.warning("⚠️ Please enter text")
 
@@ -253,15 +256,18 @@ with col2:
     if 'last_audio' in st.session_state:
         audio_path = st.session_state.last_audio
         
-        with open(audio_path, 'rb') as f:
-            audio_bytes = f.read()
-        st.audio(audio_bytes, format='audio/mp3')
-        
-        col_a, col_b = st.columns(2)
-        with col_a:
-            st.download_button("📥 Download", audio_bytes, file_name=Path(audio_path).name, mime="audio/mp3", use_container_width=True)
-        with col_b:
-            st.metric("Duration", f"{st.session_state.last_duration:.1f}s")
+        if Path(audio_path).exists():
+            with open(audio_path, 'rb') as f:
+                audio_bytes = f.read()
+            st.audio(audio_bytes, format='audio/mp3')
+            
+            col_a, col_b = st.columns(2)
+            with col_a:
+                st.download_button("📥 Download", audio_bytes, file_name=Path(audio_path).name, mime="audio/mp3", use_container_width=True)
+            with col_b:
+                st.metric("Duration", f"{st.session_state.last_duration:.1f}s")
+        else:
+            st.info("📭 File no longer exists")
     else:
         st.info("👆 Generate to see output")
     
@@ -274,11 +280,15 @@ st.markdown('<p class="section-title">📊 History</p>', unsafe_allow_html=True)
 audio_dir = Path("output/audio")
 if audio_dir.exists():
     audio_files = sorted(list(audio_dir.glob("*.mp3")) + list(audio_dir.glob("*.wav")), key=os.path.getmtime, reverse=True)
+    audio_files = [f for f in audio_files if f.exists()]
     
     if audio_files:
         st.caption(f"📂 {len(audio_files)} files")
         
         for audio_file in audio_files:
+            if not audio_file.exists():
+                continue
+                
             c1, c2, c3, c4, c5 = st.columns([3, 1.5, 1, 1, 1])
             
             with c1:
@@ -298,8 +308,11 @@ if audio_dir.exists():
             
             with c5:
                 if st.button("🗑️", key=f"del_{audio_file.name}"):
-                    audio_file.unlink()
-                    st.rerun()
+                    try:
+                        audio_file.unlink()
+                        st.rerun()
+                    except:
+                        pass
     else:
         st.info("📭 No files yet")
 
