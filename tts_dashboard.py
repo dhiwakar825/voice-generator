@@ -5,7 +5,6 @@ import streamlit as st
 import os
 from pathlib import Path
 from piper_tts import PiperTTS
-import wave
 
 st.set_page_config(page_title="Voice Generator", page_icon="🎤", layout="wide")
 
@@ -183,6 +182,9 @@ with st.sidebar:
         audio_dir = Path("output/audio")
         if audio_dir.exists():
             count = 0
+            for file in audio_dir.glob("*.mp3"):
+                file.unlink()
+                count += 1
             for file in audio_dir.glob("*.wav"):
                 file.unlink()
                 count += 1
@@ -193,8 +195,10 @@ with st.sidebar:
     
     audio_dir = Path("output/audio")
     if audio_dir.exists():
-        file_count = len(list(audio_dir.glob("*.wav")))
-        total_size = sum(f.stat().st_size for f in audio_dir.glob("*.wav"))
+        mp3_files = list(audio_dir.glob("*.mp3"))
+        wav_files = list(audio_dir.glob("*.wav"))
+        file_count = len(mp3_files) + len(wav_files)
+        total_size = sum(f.stat().st_size for f in mp3_files) + sum(f.stat().st_size for f in wav_files)
         st.caption(f"📊 Files: {file_count}")
         st.caption(f"💾 Size: {total_size/1024:.1f} KB")
     
@@ -251,11 +255,11 @@ with col2:
         
         with open(audio_path, 'rb') as f:
             audio_bytes = f.read()
-        st.audio(audio_bytes, format='audio/wav')
+        st.audio(audio_bytes, format='audio/mp3')
         
         col_a, col_b = st.columns(2)
         with col_a:
-            st.download_button("📥 Download", audio_bytes, file_name=Path(audio_path).name, mime="audio/wav", use_container_width=True)
+            st.download_button("📥 Download", audio_bytes, file_name=Path(audio_path).name, mime="audio/mp3", use_container_width=True)
         with col_b:
             st.metric("Duration", f"{st.session_state.last_duration:.1f}s")
     else:
@@ -269,7 +273,7 @@ st.markdown('<p class="section-title">📊 History</p>', unsafe_allow_html=True)
 
 audio_dir = Path("output/audio")
 if audio_dir.exists():
-    audio_files = sorted(audio_dir.glob("*.wav"), key=os.path.getmtime, reverse=True)
+    audio_files = sorted(list(audio_dir.glob("*.mp3")) + list(audio_dir.glob("*.wav")), key=os.path.getmtime, reverse=True)
     
     if audio_files:
         st.caption(f"📂 {len(audio_files)} files")
@@ -281,17 +285,16 @@ if audio_dir.exists():
                 st.text(f"🎵 {audio_file.name}")
             
             with c2:
-                with wave.open(str(audio_file), 'r') as wf:
-                    dur = wf.getnframes() / wf.getframerate()
-                st.caption(f"⏱️ {dur:.1f}s")
+                st.caption(f"⏱️ ~{audio_file.stat().st_size/3000:.1f}s")
             
             with c3:
                 size_kb = audio_file.stat().st_size / 1024
                 st.caption(f"📦 {size_kb:.0f}KB")
             
             with c4:
+                mime = "audio/mp3" if audio_file.suffix == ".mp3" else "audio/wav"
                 with open(audio_file, 'rb') as f:
-                    st.download_button("📥", f.read(), file_name=audio_file.name, key=f"dl_{audio_file.name}", mime="audio/wav")
+                    st.download_button("📥", f.read(), file_name=audio_file.name, key=f"dl_{audio_file.name}", mime=mime)
             
             with c5:
                 if st.button("🗑️", key=f"del_{audio_file.name}"):
