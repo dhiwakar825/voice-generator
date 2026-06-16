@@ -1,19 +1,24 @@
 """
-TTS Engine using gTTS
+TTS Engine using Edge TTS (Microsoft)
+Free for commercial use
 """
-from gtts import gTTS
+import edge_tts
+import asyncio
 from pathlib import Path
 import hashlib
 
 class PiperTTS:
     VOICES = {
-        'English (US)': {'lang': 'en', 'tld': 'com'},
-        'English (UK)': {'lang': 'en', 'tld': 'co.uk'},
-        'English (AU)': {'lang': 'en', 'tld': 'com.au'},
-        'English (IN)': {'lang': 'en', 'tld': 'co.in'},
+        'Female (US)': 'en-US-JennyNeural',
+        'Male (US)': 'en-US-GuyNeural',
+        'Female (UK)': 'en-GB-SoniaNeural',
+        'Male (UK)': 'en-GB-RyanNeural',
+        'Female (AU)': 'en-AU-NatashaNeural',
+        'Female (IN)': 'en-IN-NeerjaNeural',
+        'Male (IN)': 'en-IN-PrabhatNeural',
     }
     
-    def __init__(self, voice='English (US)'):
+    def __init__(self, voice='Female (US)'):
         self.output_dir = Path("output/audio")
         self.output_dir.mkdir(parents=True, exist_ok=True)
         self.set_voice(voice)
@@ -26,15 +31,18 @@ class PiperTTS:
     def synthesize(self, text, output_filename=None):
         if output_filename is None:
             hash_id = hashlib.md5(text.encode()).hexdigest()[:8]
-            voice_prefix = self.current_voice.split('(')[1].replace(')','').strip().lower()
+            voice_prefix = self.current_voice.split(' ')[0].lower()
             output_filename = f"speech_{voice_prefix}_{hash_id}.mp3"
         
         output_path = self.output_dir / output_filename
         
-        voice_config = self.VOICES[self.current_voice]
+        voice_short = self.VOICES[self.current_voice]
         
-        tts = gTTS(text=text, lang=voice_config['lang'], tld=voice_config['tld'], slow=False)
-        tts.save(str(output_path))
+        async def generate():
+            communicate = edge_tts.Communicate(text, voice_short)
+            await communicate.save(str(output_path))
+        
+        asyncio.run(generate())
         
         duration = len(text.split()) * 0.4
         

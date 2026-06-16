@@ -157,7 +157,7 @@ st.markdown("""
 with st.sidebar:
     st.markdown("### 🎛️ Settings")
     
-    voice = st.selectbox("Choose Voice:", ['English (US)', 'English (UK)', 'English (AU)', 'English (IN)'], index=0)
+    voice = st.selectbox("Choose Voice:", ['Female (US)', 'Male (US)', 'Female (UK)', 'Male (UK)', 'Female (AU)', 'Female (IN)', 'Male (IN)'], index=0)
     
     if 'tts' not in st.session_state or st.session_state.get('current_voice') != voice:
         st.session_state.tts = PiperTTS(voice)
